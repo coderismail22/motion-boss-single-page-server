@@ -6,7 +6,7 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
-// middleaware
+// middleware
 app.use(cors());
 app.use(express.json());
 
@@ -123,8 +123,16 @@ async function run() {
     // Bkash payment
     const bkashCollection = client.db("motion-boss").collection("paymentInfo");
     app.post("/paymentInfo", async (req, res) => {
-      const bkashPayment = req.body;
-      const bkashPaymentResult = await bkashCollection.insertOne(bkashPayment);
+      const paymentInfo = req.body;
+      // 1. extract cart id and payment info
+      const { cartId, ...actualPaymentInfo } = paymentInfo;
+      // 2. insert payment info into db
+      const bkashPaymentResult = await bkashCollection.insertOne(
+        actualPaymentInfo
+      );
+      // delete from user cart
+      const query = { _id: new ObjectId(cartId) };
+      const result = await cartCollection.deleteOne(query);
       res.send(bkashPaymentResult);
     });
 
